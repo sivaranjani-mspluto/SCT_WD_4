@@ -1,87 +1,90 @@
-// Retrieve todo from local storage or initialize an empty array
-let todo = JSON.parse(localStorage.getItem("todo")) || [];
-const todoInput = document.getElementById("todoInput");
-const todoList = document.getElementById("todoList");
-const todoCount = document.getElementById("todoCount");
-const addButton = document.querySelector(".btn");
-const deleteButton = document.getElementById("deleteButton");
-
-// Initialize
-document.addEventListener("DOMContentLoaded", function () {
-  addButton.addEventListener("click", addTask);
-  todoInput.addEventListener("keydown", function (event) {
-    if (event.key === "Enter") {
-      event.preventDefault(); // Prevents default Enter key behavior
-      addTask();
-    }
-  });
-  deleteButton.addEventListener("click", deleteAllTasks);
-  displayTasks();
-});
+document.addEventListener("DOMContentLoaded", loadTasks);
 
 function addTask() {
-  const newTask = todoInput.value.trim();
-  if (newTask !== "") {
-    todo.push({ text: newTask, disabled: false });
-    saveToLocalStorage();
-    todoInput.value = "";
-    displayTasks();
-  }
-}
+    let taskText = document.getElementById("taskInput").value.trim();
+    let taskDateTime = document.getElementById("taskDateTime").value;
 
-function displayTasks() {
-  todoList.innerHTML = "";
-  todo.forEach((item, index) => {
-    const p = document.createElement("p");
-    p.innerHTML = `
-      <div class="todo-container">
-        <input type="checkbox" class="todo-checkbox" id="input-${index}" ${
-      item.disabled ? "checked" : ""
-    }>
-        <p id="todo-${index}" class="${
-      item.disabled ? "disabled" : ""
-    }" onclick="editTask(${index})">${item.text}</p>
-      </div>
-    `;
-    p.querySelector(".todo-checkbox").addEventListener("change", () =>
-      toggleTask(index)
-    );
-    todoList.appendChild(p);
-  });
-  todoCount.textContent = todo.length;
-}
-
-function editTask(index) {
-  const todoItem = document.getElementById(`todo-${index}`);
-  const existingText = todo[index].text;
-  const inputElement = document.createElement("input");
-
-  inputElement.value = existingText;
-  todoItem.replaceWith(inputElement);
-  inputElement.focus();
-
-  inputElement.addEventListener("blur", function () {
-    const updatedText = inputElement.value.trim();
-    if (updatedText) {
-      todo[index].text = updatedText;
-      saveToLocalStorage();
+    if (taskText === "" || taskDateTime === "") {
+        alert("Please enter a task and set a date/time!");
+        return;
     }
-    displayTasks();
-  });
+
+    let taskList = document.getElementById("taskList");
+    let li = document.createElement("li");
+
+    li.innerHTML = `
+        <span class="task-text">${taskText}</span> 
+        <span class="task-datetime">${new Date(taskDateTime).toLocaleString()}</span>
+        <button class="edit-btn" onclick="editTask(this)">Edit</button>
+        <button class="delete-btn" onclick="deleteTask(this)">Delete</button>
+    `;
+
+    taskList.appendChild(li);
+    updateTaskCount();
+    saveTasks();
+
+    document.getElementById("taskInput").value = ""; 
+    document.getElementById("taskDateTime").value = ""; 
+
 }
 
-function toggleTask(index) {
-  todo[index].disabled = !todo[index].disabled;
-  saveToLocalStorage();
-  displayTasks();
+function editTask(button) {
+    let li = button.parentElement;
+    let taskTextElement = li.querySelector(".task-text");
+    let taskDateTimeElement = li.querySelector(".task-datetime");
+
+    let newText = prompt("Edit your task:", taskTextElement.innerText);
+    let newDateTime = prompt("Edit date & time (YYYY-MM-DD HH:MM):", taskDateTimeElement.innerText);
+
+    if (newText !== null && newDateTime !== null) {
+        taskTextElement.innerText = newText;
+        taskDateTimeElement.innerText = new Date(newDateTime).toLocaleString();
+        saveTasks();
+    }
 }
 
-function deleteAllTasks() {
-  todo = [];
-  saveToLocalStorage();
-  displayTasks();
+function deleteTask(button) {
+    button.parentElement.remove();
+    updateTaskCount();
+    saveTasks();
 }
 
-function saveToLocalStorage() {
-  localStorage.setItem("todo", JSON.stringify(todo));
+function deleteAll() {
+    document.getElementById("taskList").innerHTML = "";
+    updateTaskCount();
+    saveTasks();
+}
+
+function updateTaskCount() {
+    let count = document.getElementById("taskList").children.length;
+    document.getElementById("taskCount").innerText = `${count} items total`;
+}
+
+function saveTasks() {
+    let tasks = [];
+    document.querySelectorAll("#taskList li").forEach(li => {
+        tasks.push({
+            text: li.querySelector(".task-text").innerText,
+            datetime: li.querySelector(".task-datetime").innerText
+        });
+    });
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+function loadTasks() {
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    let taskList = document.getElementById("taskList");
+
+    tasks.forEach(task => {
+        let li = document.createElement("li");
+        li.innerHTML = `
+            <span class="task-text">${task.text}</span> 
+            <span class="task-datetime">${task.datetime}</span>
+            <button class="edit-btn" onclick="editTask(this)">Edit</button>
+            <button class="delete-btn" onclick="deleteTask(this)">Delete</button>
+        `;
+        taskList.appendChild(li);
+    });
+
+    updateTaskCount();
 }
